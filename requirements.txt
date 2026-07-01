@@ -2,4 +2,3 @@ onnxruntime
 streamlit
 pillow
 numpy
-gdown
