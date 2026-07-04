@@ -6,41 +6,45 @@ import onnxruntime as ort
 import requests
 
 st.set_page_config(
-    page_title="🍌 Produce Freshness Predictor",
-    page_icon="🍌",
+    page_title="🥦 Produce Freshness Predictor",
+    page_icon="🥦",
     layout="centered"
 )
 
-st.title("🍌 AI Freshness & Shelf-Life Predictor")
+st.title("🥦 AI Freshness & Shelf-Life Predictor")
 st.markdown("### Built for Quick-Commerce Platforms like Zepto & Blinkit")
-st.write("Upload a banana image to get an instant freshness score and dispatch recommendation.")
+st.markdown("**Supports:** 🍌 Banana &nbsp;|&nbsp; 🍅 Tomato &nbsp;|&nbsp; 🥔 Potato")
+st.write("Upload a produce image to get an instant freshness score and dispatch recommendation.")
 
 @st.cache_resource
 def load_model():
-    if not os.path.exists('best_model.onnx'):
-        url = 'https://drive.google.com/uc?export=download&id=1i1rrXHPXoP-ckrwS0r4-PVpncmnaEB-P'
+    if not os.path.exists('best_model_v2.onnx'):
+        st.info("Downloading model... please wait (~30 seconds)")
+        url = 'https://drive.google.com/uc?export=download&id=1ISydbI2W2oMrZlLShuiQHn6tmQVFCQKb'
         session = requests.Session()
         response = session.get(url, stream=True)
-        
-        # Handle Google's virus scan warning for large files
+
         for key, value in response.cookies.items():
             if key.startswith('download_warning'):
                 url = url + '&confirm=' + value
                 response = session.get(url, stream=True)
                 break
-        
-        with open('best_model.onnx', 'wb') as f:
+
+        with open('best_model_v2.onnx', 'wb') as f:
             for chunk in response.iter_content(chunk_size=32768):
                 if chunk:
                     f.write(chunk)
-        print("✅ Model downloaded!")
-    
-    session = ort.InferenceSession('best_model.onnx')
-    return session
+
+    return ort.InferenceSession('best_model_v2.onnx')
 
 session = load_model()
 
-uploaded_file = st.file_uploader("📸 Upload produce image", type=["jpg","jpeg","png"])
+st.markdown("---")
+
+uploaded_file = st.file_uploader(
+    "📸 Upload produce image (banana, tomato or potato)",
+    type=["jpg","jpeg","png"]
+)
 
 if uploaded_file:
     img = Image.open(uploaded_file).convert("RGB")
@@ -57,16 +61,24 @@ if uploaded_file:
     st.markdown("---")
     st.metric(label="Freshness Score", value=f"{freshness_score:.1f} / 100")
 
+    # Progress bar for visual impact
+    st.progress(int(freshness_score))
+
     if freshness_score >= 60:
-        st.success("✅ DISPATCH IMMEDIATELY — High freshness")
+        st.success("✅ DISPATCH IMMEDIATELY — High freshness, prioritize for delivery")
         st.info("📦 Recommended Action: Standard dispatch within 24 hours")
     elif freshness_score >= 25:
-        st.warning("⚠️ DISCOUNT & PRIORITIZE — Moderate freshness")
+        st.warning("⚠️ DISCOUNT & PRIORITIZE — Moderate freshness detected")
         st.info("💰 Recommended Action: Apply 20–30% discount, dispatch today")
     else:
         st.error("❌ REMOVE FROM INVENTORY — Spoilage risk detected")
         st.info("🗑️ Recommended Action: Flag for removal, do not dispatch")
 
     st.markdown("---")
-    st.markdown("**Model:** MobileNetV2 Transfer Learning | **Accuracy:** 100% on 1,792 test images")
-    st.markdown("**Use Case:** Automated quality control for fresh produce at warehouse intake")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Model", "MobileNetV2")
+    col2.metric("Test Accuracy", "99%")
+    col3.metric("Test Images", "3,040")
+
+    st.markdown("**Produce Supported:** Banana · Tomato · Potato")
+    st.markdown("**Use Case:** Automated quality control at warehouse intake")
